@@ -1,0 +1,928 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.20 of 2017/10/04
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage{polski}
+\usepackage[utf8]{inputenc}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{pgfplots}
+\restylefloat{table}
+
+\renewcommand\UrlFont{\color{blue}\rmfamily}
+
+
+\begin{document}
+%
+\title{Zastosowanie Informatyki w Medycynie}
+\vspace{20mm}
+\subtitle{Komputerowe rozpoznawanie diagnozowania choroby niedokrwiennej u dzieci z wykorzystaniem algorytmu k-NN \thanks{Realizowany w ramach zajęć projektowych Zastosowanie Informatyki w Medycynie PWR}}
+%
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{Szynal Paweł\orcidID{226026} \and
+Zdeb Kamil \orcidID{235871} }
+%
+% \authorrunning{F. Author et al.}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+\institute{Politechnika Wrocławska (Wrocław University of Science and Technology)}
+%
+\maketitle              % typeset the header of the contribution
+%
+\begin{abstract}
+Dokument zawiera realizację pierwszego etapu tematu numer~6 projektu z kursu Zastosowania Informatyki w Medycynie. Został w nim przedstawiony cel projektu, opis problemu medycznego, charakterystyka klas danych, a także cech, na podstawie których odbędzie się klasyfikacja. Zawiera również opis algorytmu k-najbliższych sąsiadów oraz ranking cech sporządzony metodą chi-kwadrat. Opisano w nim również implementację środowiska eksperymentalnego oraz zebrane wyniki eksperymentu oraz analizy statystycznej wraz z zebranymi przez nas wnioskami.
+
+\keywords{k-najbliższych sąsiadów  \and chi-kwadrat \and anemia \and test t-studenta}
+\end{abstract}
+
+\section{Cel projektu}
+
+Celem projektu jest nabycie umiejętności zastosowania algorytmu k-NN w zadaniu diagnostyki medycznej wraz z selekcją cech i eksperymentalną oceną skuteczności algorytmu na danych rzeczywistych. Projekt obejmuje sprawdzenie jak jakość klasyfikacji jest skorelowana z liczbą stosowanych cech. W naszym przypadku wybrany algorytm posłuży w próbie usprawnienia procesu diagnozowania choroby niedokrwiennej u dzieci.
+
+
+% Jakość klasyfikacji jest mierzona częstością poprawnej decyzji. Badania zostały przeprowadzone metodą 5 razy powtarzanej walidacji krzyżowej (5x2CV). Wykorzystanym algorytmem klasyfikacji jest
+% algorytm K najbliższych sąsiadów, natomiast dane pozyskane są od prowadzącego
+% kurs.
+
+\newpage
+
+\section {Opis problemu medycznego}
+
+\subsection{Podstawowe informacje na temat anemii}
+
+Anemia (Niedokrwistość) jest to stan chorobowy, w którym dochodzi do spadku stężenia
+hemoglobiny, liczby krwinek czerwonych RBC (erytrocytów), wskaźnika hematokrytowego
+poniżej wartości prawidłowych. 
+
+Niedokrwistość może być spowodowana utratą krwi, zmniejszoną produkcją czerwonych krwinek i zwiększonym rozpadem czerwonych krwinek. Przyczyny utraty krwi obejmują urazy i krwawienie z przewodu pokarmowego. Przyczyną anemi może być niedobór żelaza, witaminy B12 i szereg nowotworów szpiku kostnego. W przypadku osób wymagających operacji niedokrwistość może zwiększać ryzyko konieczności przetoczenia krwi po operacji.
+
+Najczęstszą postacią niedokrwistości jestniedokrwistość niedoborowa związana z deficytem żelaza. Rzadziej występuje anemia hemolityczna (z rozpadu czerwonych krwinek), megaloblastyczna (charakteryzująca się zwiększoną objętością erytrocytów, np. w niedoborze witaminy B12) oraz aplastyczna (spadek poziomu wszystkich rodzajów krwinek na skutek zaniku szpiku kostnego). Wszystkie typy niedokrwistości, które zostały poruszone w naszym projekcie, zostały opisane w rozdziale  2.2. Charakterystyka danych.
+
+\vspace{5mm}
+
+Wyróżniamy następujące rodzaje niedokrwistości (klasyfikacja według przebiegu):
+
+\begin{itemize}
+    \item \textbf{łagodną} - stężenie hemoglobiny wynosi od 10 \( g/dl\) do 12 \( g/dl\),
+    \item \textbf{umiarkowaną} – stężenie hemoglobiny wynosi od 8  \( g/dl\)  do 9,9 \( g/dl\),
+    \item \textbf{ciężką} – stężenie hemoglobiny wynosi od 6,5  \( g/dl\) do 7,9  \( g/dl\),
+    \item \textbf{zagrażającą życiu} – stężenie hemoglobiny wynosi poniżej 6,5  \( g/dl\).
+\end{itemize}
+
+Wczesne rozpoznanie anemii i wdrożenie odpowiedniego leczenia można wyleczyć i zapobiec spusteszeniu urganizmu.Dotyczy to anemii: z niedoboru żelaza, kwasu foliowego lub witaminy B12. W pozostałych przypadkach nie zawsze udaje się do końca wyleczyć pacjenta.
+Niedokrwistość jest najczęstszą chorobą krwi, dotykającą około jednej trzeciej światowej populacji.\cite{anemia1}  Niedokrwistość z niedoboru żelaza dotyka prawie 1 miliard ludzi. 
+
+\cite{anemia2}  W 2013 r. Niedokrwistość jest jednym z sześciu globalnych celów żywieniowych WHO \cite{who} na 2025 r. 
+\subsection{Charakterystyka danych}
+
+Wszystkie klasy oraz cechy zostały dokładnie opisane poniżej.
+
+\subsubsection{Klasy jednostki chorobowej}
+
+\begin{enumerate}
+    \item \textbf{Niedokrwistość normocytowa} -
+    Anemia wywołana przez monochromatyczne występowanie mikrocytów ($Hb > 9 \frac{g}{dl}$).
+    
+    \item \textbf{Niedokrwistość megaloblastyczna} -
+    Anemia wywołana brakiem witaminy B12 oraz kwasu foliowego.
+    
+    \item \textbf{Niedokrwistość z niedoboru żelaza} -
+    Anemia wywołana brakiem żelaza w organizmie.
+    
+   \item \textbf{Pierwotna niedokrwistość aplastyczna} -
+   Wrodzona aplazja szpiku spowodowana zaburzeniem prawidłowego działania komórek macierzystych w szpiku kostnym. Niedokrwistości aplastyczne są wynikiem zaniku utkania szpikowego, przez zastąpienie go tkanką łączną lub tłuszczową, co powoduje zanik wszystkich elementów krwi.
+   
+    \item \textbf{Wtórna niedokrwistość aplastyczna} -
+    Nabyta aplazja szpiku spowodowana zaburzeniem prawidłowego działania komórek macierzystych w szpiku kostnym.
+      
+    \item \textbf{Wrodzona sferocytoza} -
+   Najczęściej diagnozowana wrodzona anemia hemolityczna. W przebiegu choroby krwinki czerwone przyjmują kulisty kształt, zamiast prawidłowego dwuwklęsłego, co sprzyja ich niszczeniu.
+    
+   \item \textbf{Wrodzona stomatocytoza} -
+   Niedokrwistości hemolityczna, wywołana defektami błon erytrocytów.
+    
+   \item \textbf{Wrodzona eliptocytoza} -
+   Rzadkie zaburzenie genetyczne dotyczące błony komórkowej erytrocytów,charakteryzującym się niedokrwistością hemolityczną
+   
+   \item \textbf{Akantocytoza} -
+    Obecność akantocytów we krwi obwodowej.
+
+   \item \textbf{Niedokrwistość wywołana niedoborem G-6-PD} -
+    Choroba spowodowana mutacją w genie G6PD. Prowadzi do utleniania grup sulfhydrylowych hemoglobiny i białek błony erytrocytu oraz wewnątrznaczyniowej hemolizy.
+    
+    \item \textbf{Kinaza pirogronianowa} -
+    Defekt enzymatyczny krwinek czerwonych polegający na braku lub niedoborze ważnego enzymu szlaku glikolizy.
+    \item \textbf{Niedokrwistość śródziemnomorska} -
+Ilościowe zaburzenia syntezy hemoglobiny, spowodowane wrodzonym defektem biosyntezy łańcuchów globiny.
+    \item \textbf{Niedokrwistość sierpowatokrwinkowa} -
+Zagrażająca życiu choroba krwi, powoduje zlepianie się krwinek, co
+prowadzi do zatorów w naczyniach krwionośnych.
+    \item \textbf{Niedokrwistość autoimmunohemolityczna} -
+Najczęściej występująca anemia hemolityczna. Wywoływana jest przez
+przeciwciała skierowane przeciwko własnym krwinkom czerwonym.
+\item \textbf{Połowiczna niedokrwistość immunohemolityczna} -
+Choroba z grupy niedokrwistość hemolityczna charakteryzująca się
+skróceniem czasu połowicznego rozpadu erytrocytów.
+\item \textbf{Niedokrwistość jatrogenna} -
+Niedokrwistość spowodowana następstwem nieodpowiedniego leczenia
+pacjenta.
+\item \textbf{Krwotoczna utrata krwi} -
+Silne krwawienie, gwałtowna utrata krwi w jej pełnym składzie na skutek
+choroby. Przy anemii może to dotyczyć hemofilii - choroby krzepnięcia
+krwi.
+\item \textbf{Krwotok wywołany ankilostomozą} -
+Najczęstszy objawy wywołane przez ankilostomozę - chorobę zakaźną
+określaną inaczej anemią górników lub chorobą tęgoryjcową. Do rozwoju
+choroby dochodzi na skutek zarażenia tęgoryjcem dwunastnicy.
+\item \textbf{Krwotok wywołany wrzodem jelita} -
+Krwawienie, w którym krew przedostaje się do światła przewodu
+pokarmowego. Zwykle jest bezobjawowe i objawia się niedokrwistością z
+niedoboru żelaza.
+\item \textbf{Krwotok wywołany nadżerką} -
+Krwawienie z dróg rozrodczych kobiety, wywołane zmianą patologiczną.
+\end{enumerate}
+
+\subsubsection{Cechy i ich charakterystyka}
+Podane razem z danymi cechy na podstawie których odbywać się będzie klasyfikacja wyglądają następująco:
+
+
+% Please add the following required packages to your document preamble:
+% \usepackage{longtable}
+% Note: It may be necessary to compile the document several times to get a multi-page table to line up properly
+    
+
+\begin{table}[]
+\begin{minipage}{0.53\textwidth}
+
+
+\begin{tabular}{|l|l|l|}
+\hline
+NR  & Nazwa cechy                                                                             & Wartości                                                                                                                                                            \\ \hline
+\multicolumn{3}{|c|}{Obraz krwi}                                                                                                                                                                                                                                    \\ \hline
+1.  & \begin{tabular}[c]{@{}l@{}}Koncentracja\\ hemoglobiny\\ (g/100 ml)\end{tabular}         & \begin{tabular}[c]{@{}l@{}}1 - powyżej 12\\ 2- od 9 do 12\\ 3- od 6 do 9\\ 4- od 3 do 6\\ 5- poniżej 3\end{tabular}                                                 \\ \hline
+2.  & \begin{tabular}[c]{@{}l@{}}Liczba \\ erytrocytów\\ (10\textasciicircum{}4)\end{tabular} & \begin{tabular}[c]{@{}l@{}}1- powyżej 350\\ 2- od 300 do 350\\ 3- od 250 do 300\\ 4- od 100 do 250\\ 5- poniżej 100\end{tabular}                                    \\ \hline
+3.  & \begin{tabular}[c]{@{}l@{}}Średnia\\ objętość\\ krwinki\\ MCV\end{tabular}              & \begin{tabular}[c]{@{}l@{}}1- poniżej 80\\ 2- od 80 do 96\\ 3- powyżej 96\end{tabular}                                                                              \\ \hline
+4.  & \begin{tabular}[c]{@{}l@{}}Średnie stężenie\\ HB w krwince\\ MCHC (\%)\end{tabular}     & \begin{tabular}[c]{@{}l@{}}1- poniżej 30\\ 2- od 30 do 36\end{tabular}                                                                                              \\ \hline
+5.  & \begin{tabular}[c]{@{}l@{}}Wielkość\\ erytrocytów\end{tabular}                          & \begin{tabular}[c]{@{}l@{}}1- powiększone\\ 2- zmniejszone\\ 3- normalne\end{tabular}                                                                               \\ \hline
+6.  & \begin{tabular}[c]{@{}l@{}}Rodzaj\\ erytrocytów\end{tabular}                            & \begin{tabular}[c]{@{}l@{}}1- sferyczne\\ 2- eliptyczne\\ 3- stomatyczne\\ 4- kolczyste\\ 5- sierpowate\\ 6- owalne\\ 7- zygzakowate\end{tabular}                   \\ \hline
+
+
+7.  & \begin{tabular}[c]{@{}l@{}}Tkanka\\ siateczkowata\end{tabular}                          & \begin{tabular}[c]{@{}l@{}}1- normalna\\ 2- powiększona\\ 3- zmniejszona\end{tabular}                                                                               \\ \hline
+
+\multicolumn{3}{|c|}{Obraz Szpiku}                                                                                                                                                                                                                                  \\ \hline
+8.  & Szpik kostny                                                                            & \begin{tabular}[c]{@{}l@{}}1- krańcowo aktywny\\ 2- średnio aktywny\\ 3- aktywny\\ 4- mało aktywny\\ 5- nieaktywny\end{tabular}                                     \\ \hline
+
+\multicolumn{3}{|c|}{Stan komórki}                                                                                                                                                                                                                                  \\ \hline
+9.  & Wielkość                                                                                & \begin{tabular}[c]{@{}l@{}}1- duża\\ 2 - mała\end{tabular}                                                                                                          \\ \hline
+
+10. & \begin{tabular}[c]{@{}l@{}}Stosunek jądrowo-\\ cytoplazmatyczny\end{tabular}            & \begin{tabular}[c]{@{}l@{}}1- duży\\ 2- mały\end{tabular}                                                                                                           \\ \hline
+
+11. & Rodzaj jądra                                                                            & \begin{tabular}[c]{@{}l@{}}1- sferyczne\\ 2- listkowe\\ 3- zdeformowane\end{tabular}                                                                                \\ \hline
+12. & \begin{tabular}[c]{@{}l@{}}Struktura\\ chromatyny\\ jądrowej\end{tabular}               & \begin{tabular}[c]{@{}l@{}}1- drobna\\ 2- rozrzucona\\ 3- chropowata\\ 4- spoista\end{tabular}                                                                      \\ \hline
+
+13. & Jąderko                                                                                 & \begin{tabular}[c]{@{}l@{}}1- obecne\\ 2- nieobecne\end{tabular}                                                                                                    \\ \hline
+\end{tabular}
+\end{minipage}
+\begin{minipage}{0.53\textwidth}
+\begin{tabular}{|l|l|l|}
+\hline
+NR  & Nazwa cechy                                                                             & Wartości                                                                                                                                                            \\ \hline
+\multicolumn{3}{|c|}{Stan komórki}                                                                                                                                                                                                                                  \\ \hline
+14. & Pasożyty                                                                                & \begin{tabular}[c]{@{}l@{}}1- obecne\\ 2- nieobecne\end{tabular}                                                                                                    \\ \hline
+
+15. & Ziarenka żelaza                                                                         & \begin{tabular}[c]{@{}l@{}}1- typu I\\ 2- typu II\\ 3- typu III\\ 4 - typu IV\end{tabular}                                                                          \\ \hline
+
+\multicolumn{3}{|c|}{Osocze}                                                                                                                                                                                                                                        \\ \hline
+16. & Poziom żelaza                                                                           & \begin{tabular}[c]{@{}l@{}}1- obniżony\\ 2- normalny\end{tabular}                                                                                                   \\ \hline
+17. & \begin{tabular}[c]{@{}l@{}}Poziom trwałych\\ związków żelaza\end{tabular}               & \begin{tabular}[c]{@{}l@{}}1- podwyższony\\ 2- obniżony\end{tabular}                                                                                                \\ \hline
+18. & \begin{tabular}[c]{@{}l@{}}Poziom \\ witaminy B12\end{tabular}                          & \begin{tabular}[c]{@{}l@{}}1- podwyższony\\ 2- obniżony\end{tabular}                                                                                                \\ \hline
+19. & \begin{tabular}[c]{@{}l@{}}Poziom kwasu\\ foliowego\end{tabular}                        & \begin{tabular}[c]{@{}l@{}}1- podwyższony\\ 2- obniżony\end{tabular}                                                                                                \\ \hline
+
+\multicolumn{3}{|c|}{Test odpornościowy}                                                                                                                                                                                                                            \\ \hline
+21. & Reakcja                                                                                 & \begin{tabular}[c]{@{}l@{}}1- negatywna\\ 2- pozytywna\end{tabular}                                                                                                 \\ \hline
+\multicolumn{3}{|c|}{\begin{tabular}[c]{@{}c@{}}Test urobilinowy, urobilinogenowy, \\ urobilirubinowy\end{tabular}}                                                                                                                                                 \\ \hline
+22. & Reakcja                                                                                 & \begin{tabular}[c]{@{}l@{}}1- negatywna\\ 2- pozytywna\end{tabular}                                                                                                 \\ \hline
+
+\multicolumn{3}{|c|}{Test ruchliwości komórki}                                                                                                                                                                                                                      \\ \hline
+23. & Reakcja                                                                                 & \begin{tabular}[c]{@{}l@{}}1- negatywna\\ 2- pozytywna\end{tabular}                                                                                                 \\ \hline
+
+
+\multicolumn{3}{|c|}{Wrażenia kliniczne}                                                                                                                                                                                                                            \\ \hline
+24. & Płeć                                                                                    & \begin{tabular}[c]{@{}l@{}}1- mężczyzna\\ 2- kobieta\end{tabular}                                                                                                   \\ \hline
+25. & Wiek                                                                                    & \begin{tabular}[c]{@{}l@{}}1- poniżej miesiąca\\ 2- od miesiąca do roku\\ 3- od roku do 3 lat\\ 4- od 3 do 6 lat\\ 5- od 6 do 9 lat\\ 6- powyżej 9 lat\end{tabular} \\ \hline
+26. & Gorączka                                                                                & \begin{tabular}[c]{@{}l@{}}1- obecna\\ 2- nieobecna\end{tabular}                                                                                                    \\ \hline
+27. & Krwawienie                                                                              & \begin{tabular}[c]{@{}l@{}}1- obecne\\ 2- nieobecne\end{tabular}                                                                                                    \\ \hline
+28. & Skóra                                                                                   & \begin{tabular}[c]{@{}l@{}}1- blada\\ 2- żółta\\ 3- sina\\ 4- obrzęknięta\end{tabular}                                                                              \\ \hline
+29. & Węzły chłonne                                                                           & \begin{tabular}[c]{@{}l@{}}1- powiększone\\ 2- niepowiększone\end{tabular}                                                                                          \\ \hline
+30. & Szmery secowe                                                                           & \begin{tabular}[c]{@{}l@{}}1- obecne\\ 2- nieobecne\end{tabular}                                                                                                    \\ \hline
+31. & Wątroba, śledziona                                                                      & \begin{tabular}[c]{@{}l@{}}1- powiększone\\ 2- niepowiększone\end{tabular}                                                                                          \\ \hline
+\end{tabular}
+\end{minipage}
+\end{table}
+
+\newpage
+
+\section{Ranking cech pod względem ich przydatności do klasyfikacji}
+\subsection{Test zgodności chi-kwadrat}
+Ranking cech został sporządzony z wykorzystaniem biblioteki sci-kit learn do języka Python. Na podstawie zaimportowanego wektora z cechami oraz klasami, do których przyporządkowano obiekty przeprowadza test zgodności chi-kwadrat\cite{chi2}. Metoda zwraca wartości chi-kwadrat oraz wartość p. Wartość p to prawdopodobieństwo tego, że dana zależność mogła wystąpić przypadkowo. Im niższa ta wartość, tym większe znaczenie ma dana cecha i tym wyżej znajduje się z w rankingu cech. 
+
+Test zgodności chi-kwadrat jest używany w statystyce do przetestowania niezależności dwóch zdarzeń. Porównuje on zaobserwowane dane z rozkładem prawdopodobieństwa chi-kwadrat. Mierzy jak wartość zmierzona oraz wartość oczekiwania się od siebie różnią. Im wyższa jest ta wartość, tym bardziej prawdopodobne jest to, że dana cecha wpływa na klasyfikację w sposób znaczący. Test zgodności korzysta z następującego wzoru.\\
+\begin{center}
+    $ x^2_c=\sum\frac{(O_i-E_i)^2}{E_i} $\\
+    \newline
+    gdzie:\\
+    
+    $O_i$ - wartość zaobserwowana\\
+    $E_i$ - wartość oczekiwana\\
+    $c$ - liczba stopni swobody, czyli (liczba klas-1)*(liczba możliwych wartości -1)\\
+\end{center}
+\subsection{Kod rankingu cech}
+Kod, który odpowiada za przeprowadzenie rankingu cech prezentuje się następująco. Wykorzystuje on edytowany plik Excela z danymi w taki sposób, aby przy każdej próbce znajdował się numer klasy, do której ona należy. Taka edycja pliku pozwoliła na proste przeprowadzenie testu zgodności eliminując konieczność operacji przeprowadzanych na wczytanej z pliku macierzy przed podaniem jej na wejście funkcji przeprowadzającej test chi-kwadrat. Po przeprowadzeniu testu macierze z wartościami chi-kwadrat i p zostają wypisane na ekran.
+
+\begin{lstlisting}[language=Python]
+import pandas as pd
+from sklearn import feature_selection
+
+input_file = "anemia.xlsx"
+df = pd.read_excel(input_file, header=0, engine='openpyxl',)
+x = df.iloc[:, 2:]
+y = df.iloc[:, 0]
+chi2, pval = feature_selection.chi2(x, y)
+print(chi2)
+print(pval)
+\end{lstlisting}
+%A chi-square test is used in statistics to test the independence of two events. Given the data of two variables, we can get observed count O and expected count E. Chi-Square measures how expected count E and observed count O deviates each other.
+
+\subsection{Ranking}
+Wartości chi-kwadrat oraz p zostały zebrane w tabeli, która została posortowana zgodnie z wartością p. Zgodnie z przyjętym poziomem istotności (0.05) za istotne można uznać dane mające p na poziomie mniejszym od 0.05, a więc pierwsze 10 cech z tabeli uznanych zostało za istotne.
+% Table generated by Excel2LaTeX from sheet 'Arkusz1'
+\begin{table}[htbp]
+  \centering
+  \caption{Ranking cech}
+    \begin{tabular}{|r|r|r|}
+    \hline
+    \multicolumn{1}{|c|}{\textbf{Nr Cechy}} & \multicolumn{1}{c|}{\textbf{Chi-kwadrat}} & \multicolumn{1}{c|}{\textbf{Wartość p}} \bigstrut\\
+    \hline
+    6 & 268.3222 & 5.902E-46 \bigstrut\\
+    \hline
+    8 & 131.5664 & 7.363E-19 \bigstrut\\
+    \hline
+    2 & 81.7284 & 9.348E-10 \bigstrut\\
+    \hline
+    12 & 71.3369 & 5.506E-08 \bigstrut\\
+    \hline
+    15 & 70.9707 & 6.339E-08 \bigstrut\\
+    \hline
+    11 & 61.0469 & 2.640E-06 \bigstrut\\
+    \hline
+    3 & 52.1683 & 6.243E-05 \bigstrut\\
+    \hline
+    5 & 49.5012 & 1.551E-04 \bigstrut\\
+    \hline
+    1 & 42.6910 & 1.428E-03 \bigstrut\\
+    \hline
+    25 & 34.9065 & 1.433E-02 \bigstrut\\
+    \hline
+    26 & 19.5977 & 4.191E-01 \bigstrut\\
+    \hline
+    7 & 18.4541 & 4.923E-01 \bigstrut\\
+    \hline
+    13 & 15.2396 & 7.073E-01 \bigstrut\\
+    \hline
+    17 & 14.8839 & 7.299E-01 \bigstrut\\
+    \hline
+    9 & 12.9984 & 8.387E-01 \bigstrut\\
+    \hline
+    19 & 11.9207 & 8.890E-01 \bigstrut\\
+    \hline
+    4 & 11.8910 & 8.902E-01 \bigstrut\\
+    \hline
+    16 & 11.2797 & 9.141E-01 \bigstrut\\
+    \hline
+    14 & 11.1366 & 9.192E-01 \bigstrut\\
+    \hline
+    23 & 11.0629 & 9.217E-01 \bigstrut\\
+    \hline
+    10 & 10.6678 & 9.345E-01 \bigstrut\\
+    \hline
+    24 & 8.3011 & 9.834E-01 \bigstrut\\
+    \hline
+    18 & 8.0786 & 9.859E-01 \bigstrut\\
+    \hline
+    20 & 8.0037 & 9.866E-01 \bigstrut\\
+    \hline
+    27 & 7.7946 & 9.886E-01 \bigstrut\\
+    \hline
+    28 & 7.6336 & 9.900E-01 \bigstrut\\
+    \hline
+    22 & 7.0778 & 9.938E-01 \bigstrut\\
+    \hline
+    21 & 5.8679 & 9.982E-01 \bigstrut\\
+    \hline
+    29 & 3.7351 & 9.999E-01 \bigstrut\\
+    \hline
+    30 & 3.0138 & 1.000E+00 \bigstrut\\
+    \hline
+    31 & 1.7623 & 1.000E+00 \bigstrut\\
+    \hline
+    \end{tabular}%
+  \label{tab:addlabel}%
+\end{table}%
+\section{Algorytm k-najbliższych sąsiadów}
+Algorytm k-najbliższych (ang. k-nearest neighbors, knn)\cite{knn} sąsiadów jest jednym z algorytmów uczenia nadzorowanego wykorzystywanym w uczeniu maszynowym oraz data science. Algorytm ten klasyfikuje dane na podstawie tego jak podobne są do innych danych.
+Metoda K Najbliższych Sąsiadów (k-Nearest Neighbors) należy do grupy algorytmów leniwych (lazy algorithms), czyli takich, które nie tworzą wewnętrznej reprezentacji wiedzy o problemie na podstawie danych uczących, lecz szukają rozwiązania dopiero w momencie pojawienia się wzorca testowego do klasyfikacji. Metoda przechowuje wszystkie wzorce uczące, względem których wyznacza odległość wobec wzorca testowego. 
+
+\subsection{Zbiór wzorców uczących}
+
+W problemach klasyfikacji, głównym zadaniem jest stworzenie algorytmu (programu), który na podstawie znanych sobie, opisanych wzorców, będzie w stanie efektywnie rozpoznawać wzorce nieopisane i dotąd sobie nieznane. Zbiór wzorców uczących (learning patterns, training examples) składa się ze zbioru par 
+    $ <x^{i},y^{i}> $ , gdzie    $ x^{i} $ jest zbiorem parametrów 
+    $   x^{i}= (x_{1}^{i},...,_{n}^{i}) $ definiujących obiekty (zwykle w postaci wektora lub macierzy danych), zaś  $ y^{i} $ jest wartością przewidywaną/powiązaną/skojarzoną, np. indeksem lub nazwą klasy, do której obiekt $ x^{i} $  należy i którą razem z innymi obiektami tej klasy definiuje.
+    
+\subsection{Algorytm}
+
+Algorytm knn przedstawia się następująco:
+\begin{enumerate}
+    \item Podziel dane na zbiór uczący i testujący.
+    \item Wybierz parametr k, który wskazuje na to ilu najbliższych sąsiadów będzie branych pod uwagę.
+    \item Dla każdej danej ze zbioru testującego oblicz dystans od danych ze zbioru uczącego za pomocą wybranej miary odległości.
+    \item Weź k obiektów z najmniejszym dystansem.
+    \item Sprawdź, do której klasy należy najwięcej wybranych obiektów.
+    \item Przydziel dane, do klasy, która wystąpiła najczęściej.
+\end{enumerate}    
+    
+\subsection{Klasyfikacja}
+
+    W fazie klasyfikacji k jest stałą zdefiniowaną przez użytkownika, a nieoznaczony wektor (zapytanie lub punkt testowy) jest klasyfikowany przez przypisanie etykiety, która występuje najczęściej wśród k próbek uczących znajdujących się najbliżej tego punktu zapytania. 
+
+\subsection{Miary odległości}
+
+Szczególnie ważne jest przyjęcie właściwej odległości \cite{distance}, a w zasadzie miary niepodobieństwa obiektów. Funkcję $ \rho:\chi\times \chi \rightarrow  \mathbb{R} $  nazywamy miarą niepodobieństwa jeśli:
+
+    \begin{enumerate}
+        \item $ \rho (x,y) \geq 0$  
+        \item $ \rho (x,y) = 0 $ wtedy i tyko wtedy, gdy $ x = y$
+        \item $ \rho (y,x) = \rho (x,y) $
+    \end{enumerate}
+
+\subsubsection{Metryka euklidesowa} 
+
+\begin{itemize}
+\item  Niech  $ x,y \in  \mathbb{R} $
+\item  oraz   $ x = (x_{1},x_{2},..., x_{n}) $  
+\vspace{1mm} $ y = (y_{1},y_{2},..., y_{n}) $ 
+\item  Metryka euklidesowa zdefiniowana jest wzorem:
+
+\vspace{5mm} $\rho_{e}(x,y) = \sqrt{ \sum_{k=1}^{n}(x_{k} - y_{k})^{2}} =\sqrt{(x_1 - y_1)^{2} + (x_2 - y_2)^{2} + ... + (x_n - y_n)}$
+\end{itemize}
+
+
+\subsubsection{Metryka Czebyszewa, szachowa} 
+
+\begin{itemize}
+\item  Niech  $ x,y \in  \mathbb{R^{n}} $
+\item  oraz   $ x = (x_{1},x_{2},..., x_{n}) $  
+\vspace{1mm} $ y = (y_{1},y_{2},..., y_{n}) $ 
+\item  Metryka Czebyszewa zdefiniowana jest wzorem:
+
+\vspace{5mm} $\rho_{ch}(x,y) = \underset{i}{max})\left | x_{i} - y_{i} \right | = \lim_{m\rightarrow \propto } \left ( \sum_{i=1}^{n} \left |x_i - y_i  \right |^{m} \right )^{\frac{1}{m}}$
+\end{itemize}
+
+
+\subsubsection{Metryka kolejowa, centrum, węzła
+kolejowego} 
+
+\begin{itemize}
+\item  Niech  $ x,y \in  \mathbb{R^{2}} $
+\item  oraz   $ x = (x_{1},x_{2}) $  
+\vspace{1mm} $ y = (y_{1},y_{2}) $ 
+\item Metryka kolejowa zdefiniowana jest wzorem:
+
+
+$$
+\rho_k(x,y) = \left\{ \begin{array}{lr}
+\rho_e (x,y) &  \textrm{gdy $x,y$  oraz $\theta$ leżą na jednej prostej}\\
+\rho_e(x,\theta ) + d_3 (\theta,y) &  \textrm{w przeciwnym wypadku}\\
+\end{array} \right.
+$$
+
+
+\vspace{5mm} 
+Odległość dwóch punktów w tej metryce jest sumą euklidesowych
+ich odległości od punktu θ = (0,0) lub – w przypadku, kiedy prosta
+łącząca te punkty przechodzi przez punkt θ – zwykła euklidesowa
+odległość. 
+\end{itemize}
+
+
+\subsubsection{Metryka Fr\'echeta} 
+
+\begin{itemize}
+\item  Niech  $ x,y \in  \mathbb{R} $
+\item  oraz   $ x = (x_{1},x_{2},..., x_{n}) $  
+\vspace{1mm} $ y = (y_{1},y_{2},..., y_{n}) $ 
+\item  Metryka Fr\'echeta zdefiniowana jest wzorem:
+
+\vspace{5mm} $$\rho_{ch}(x,y) = \sum_{i=1}^{} \frac{\left | x_i - y_i \right |}{1+ 2^{i} \left |  x_i + y_i \right |}}$$
+\end{itemize}
+\subsection{Metryka Manhattan}
+\begin{itemize}
+    \item Niech $x,y \in \mathbb{R}$
+    \item odległość dwóch punktów w tej metryce to suma wartości bezwzględnych różnic ich współrzędnych
+    \item W przestrzeni $R^n$ metryka Manhattan zdefiniowana jest wzorem:
+    $$
+    \rho_k(x,y) = \sum_{k=1}^{n}|x_k-y_k|
+    $$
+\end{itemize}
+\section{Plan eksperymentu}
+Za istotne statystycznie zostało uznane pierwsze 10 cech z rankingu cech, ponieważ dały p-wartość poniżej przyjętego poziomu istotności. Zostanie wykorzystanych 6 klasyfikatorów. Każdy z klasyfikatorów wykorzysta inną kombinację 3 wartości liczby sąsiadów (5,9,16) oraz 2 metryk (metryka euklidesowa i metryka Manhattan). Po wczytaniu z pliku danych z pliku dla każdego z klasyfikatorów i pierwszej z istotnych cech zostanie przeprowadzona klasyfikacja danych testowych. Po jej dokonaniu zostanie dodana kolejna z cech i proces powtórzony. Aby zapewnić wiarygodność osiągniętych wyników klasyfikacji została wykorzystana 5-krotnie powtórzona 2-krotna walidacja krzyżowa \cite{k-fold}. Po ukończeniu klasyfikacji dane dla każdego klasyfikatora i liczby cech zostaną uśrednione. Dla każdego klasyfikatora zostanie wybrana liczba cech, dla której klasyfikator osiągnął najlepsze wyniki. Następnie serie wyników, które miały najlepszą średnią dla danego klasyfikatora, zostaną porównane z analogicznymi seriami wyników dla innych klasyfikatorów za pomocą testu parowego t-studenta \cite{tstud}.
+
+\section{Środowisko programistyczne}
+Środowisko eksperymentalne zostało zaprojektowane z wykorzystaniem biblioteki scikit-learn \cite{scikit-learn} do języka Python\cite{py3.8}. Zostały także użyte takie biblioteki jak Numpy\cite{harris2020array} czy Pandas\cite{reback2020pandas}. Test parowy t-studenta został przeprowadzony przy wykorzystaniu biblioteki scipy\cite{2020SciPy-NMeth}, która jest jedną z zależności biblioteki scikit-learn. 
+
+Program działa w ten sposób, że na podstawie listy z 10 najlepszymi cechami z rankingu cech, wybiera pierwszą cechę, a następnie na jej podstawie klasyfikuje dane. Program używa 5-krotnie powtórzonej 2-krotnej walidacji krzyżowej\cite{k-fold} dla każdego zestawu metryk oraz liczby sąsiadów, aby zwiększyć wiarygodność otrzymaych wyników.. Wyniki zapisuje do macierzy. Następnie dodawana jest kolejna cecha z listy cech i proces jest powtórzony. Po 10 krotnym wykonaniu takiej pętli wyniki są uśredniane, a następnie wybierane są najlepsze wyniki dla danego klasyfikatora, które są wykorzystywane do przeprowadzenia parowego testu t-studenta. Poza wypisaniem na ekran wyniku testu wypisane są również macierz przewagi oraz macierz istotności.
+\subsection{Kod}
+
+
+\begin{lstlisting}[language=Python]
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split,\
+    RepeatedStratifiedKFold
+from sklearn.base import clone
+from scipy.stats import ttest_ind
+import xlrd
+from tabulate import tabulate
+
+np.set_printoptions(suppress=True)
+input_file = "ANEMIA.XLS"
+features = [7, 9, 3, 13, 16, 12, 4, 6, 2, 26]
+
+# Import data
+
+with xlrd.open_workbook(input_file) as wb:
+    df = pd.ExcelFile(wb).parse()
+    df["Unnamed: 0"].fillna(method='pad', inplace=True)
+    data = df.to_numpy()
+clfs = {
+        "man5": KNeighborsClassifier(n_neighbors=5, p=1),
+        "euk5": KNeighborsClassifier(n_neighbors=5, p=2),
+        "man9": KNeighborsClassifier(n_neighbors=9, p=1),
+        "euk9": KNeighborsClassifier(n_neighbors=9, p=2),
+        "man16": KNeighborsClassifier(n_neighbors=16, p=1),
+        "euk16": KNeighborsClassifier(n_neighbors=16, p=2),
+    }
+n_splits = 2
+n_repeats = 5
+rskf = RepeatedStratifiedKFold(n_repeats=n_repeats,
+n_splits=n_splits, random_state=312)
+scores = np.zeros((len(clfs), len(features),
+n_splits * n_repeats))
+for i in range(len(features)):
+    features_selected = features[0: i + 1]
+    # print(features_selected)
+    X = data[:, features_selected]
+    y = data[:, 0].astype(int)
+    # Replace Nan with previous number
+    X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=.3,
+    random_state=42,
+    )
+
+    for fold_id, (train, test) in enumerate(rskf.split(X, y)):
+        for clf_id, clf_name in enumerate(clfs):
+            clf = clone(clfs[clf_name])
+            clf.fit(X[train], y[train])
+            y_pred = clf.predict(X[test])
+            scores[clf_id, i, fold_id] = accuracy_score(
+            y[test], y_pred)
+np.save('results', scores)
+
+scores = np.load('results.npy')
+print("\nScores:\n", scores.shape)
+mean_scores = np.mean(scores, axis=2).T
+print("\nMean scores:\n", mean_scores)
+best_indices = mean_scores.argmax(axis=0)
+print(best_indices)
+best_scores = np.zeros((len(clfs), n_splits * n_repeats))
+for i, clf_id in enumerate(scores):
+    best_scores[i] = clf_id[best_indices[i]]
+
+alfa = .05
+t_statistic = np.zeros((len(clfs), len(clfs)))
+p_value = np.zeros((len(clfs), len(clfs)))
+
+for i in range(len(clfs)):
+    for j in range(len(clfs)):
+        t_statistic[i, j], p_value[i, j] = ttest_ind(
+        best_scores[i], best_scores[j])
+print("t-statistic:\n", t_statistic, "\n\np-value:\n", p_value)
+
+headers = ["Man5", "Euk5", "Man9", "Euk9", "Man16", "Euk16" ]
+names_column = np.array([["Man5"], ["Euk5"], ["Man9"], ["Euk9"],
+["Man16"], ["Euk16"]])
+t_statistic_table = np.concatenate((names_column, t_statistic), axis=1)
+t_statistic_table = tabulate(t_statistic_table, headers, floatfmt=".2f")
+p_value_table = np.concatenate((names_column, p_value), axis=1)
+p_value_table = tabulate(p_value_table, headers, floatfmt=".2f")
+print("t-statistic:\n", t_statistic_table, "\n\np-value:\n",
+p_value_table)
+advantage = np.zeros((len(clfs), len(clfs)))
+advantage[t_statistic > 0] = 1
+advantage_table = tabulate(np.concatenate(
+    (names_column, advantage), axis=1), headers)
+print("Advantage:\n", advantage_table)
+significance = np.zeros((len(clfs), len(clfs)))
+significance[p_value <= alfa] = 1
+significance_table = tabulate(np.concatenate(
+    (names_column, significance), axis=1), headers)
+print("Statistical significance (alpha = 0.05):\n", significance_table)
+
+
+\end{lstlisting}
+\newpage
+\section{Wyniki eksperymentu}
+\subsection{Wyniki ewaluacji eksperymentalnej}
+Wyniki zostały zebrane za pomocą programu za pomocą algorytmu knn z wykorzystaniem protokołu badawczego 5-krotnie powtórzonej 2-krotnej walidacji krzyżowej.
+
+
+\begin{table}[H]
+%   \centering
+  \caption{Uśrednione wyniki dla każdego eksperymentu}
+  \begin{minipage}{0.5\textwidth}
+    \begin{tabular}{|r|l|r|r|}
+    \hline
+    \multicolumn{1}{|l|}{\textbf{Sąsiedzi}} & \textbf{Metryka} & \multicolumn{1}{l|}{\textbf{Cechy}} & \multicolumn{1}{l|}{\textbf{Wartość}} \bigstrut\\
+    \hline
+    5 & Manhattan & 1 & 0.157 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 1 & 0.157 \bigstrut\\
+    \hline
+    9 & Manhattan & 1 & 0.159 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 1 & 0.159 \bigstrut\\
+    \hline
+    16 & Manhattan & 1 & 0.177 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 1 & 0.177 \bigstrut\\
+    \hline
+    5 & Manhattan & 2 & 0.266 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 2 & 0.266 \bigstrut\\
+    \hline
+    9 & Manhattan & 2 & 0.279 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 2 & 0.277 \bigstrut\\
+    \hline
+    16 & Manhattan & 2 & 0.270 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 2 & 0.269 \bigstrut\\
+    \hline
+    5 & Manhattan & 3 & 0.300 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 3 & 0.298 \bigstrut\\
+    \hline
+    9 & Manhattan & 3 & 0.322 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 3 & 0.307 \bigstrut\\
+    \hline
+    16 & Manhattan & 3 & 0.341 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 3 & 0.307 \bigstrut\\
+    \hline
+    5 & Manhattan & 4 & 0.356 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 4 & 0.335 \bigstrut\\
+    \hline
+    9 & Manhattan & 4 & 0.363 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 4 & 0.337 \bigstrut\\
+    \hline
+    16 & Manhattan & 4 & 0.347 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 4 & 0.303 \bigstrut\\
+    \hline
+    5 & Manhattan & 5 & 0.363 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 5 & 0.338 \bigstrut\\
+    \hline
+    9 & Manhattan & 5 & 0.378 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 5 & 0.336 \bigstrut\\
+    \hline
+    16 & Manhattan & 5 & 0.371 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 5 & 0.300 \bigstrut\\
+    \hline
+    \end{tabular}
+    \end{minipage}
+    \begin{minipage}{0.5\textwidth}
+    \begin{tabular}{|r|l|r|r|}
+    \hline
+    \multicolumn{1}{|l|}{\textbf{Sąsiedzi}} & \textbf{Metryka} & \multicolumn{1}{l|}{\textbf{Cechy}} & \multicolumn{1}{l|}{\textbf{Wartość}} \bigstrut\\
+    \hline
+    5 & Manhattan & 6 & 0.403 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 6 & 0.374 \bigstrut\\
+    \hline
+    9 & Manhattan & 6 & 0.419 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 6 & 0.357 \bigstrut\\
+    \hline
+    16 & Manhattan & 6 & 0.423 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 6 & 0.330 \bigstrut\\
+    \hline
+    5 & Manhattan & 7 & 0.436 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 7 & 0.389 \bigstrut\\
+    \hline
+    9 & Manhattan & 7 & 0.436 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 7 & 0.377 \bigstrut\\
+    \hline
+    16 & Manhattan & 7 & 0.434 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 7 & 0.337 \bigstrut\\
+    \hline
+    5 & Manhattan & 8 & 0.454 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 8 & 0.395 \bigstrut\\
+    \hline
+    9 & Manhattan & 8 & 0.471 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 8 & 0.361 \bigstrut\\
+    \hline
+    16 & Manhattan & 8 & 0.458 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 8 & 0.343 \bigstrut\\
+    \hline
+    5 & Manhattan & 9 & 0.459 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 9 & 0.377 \bigstrut\\
+    \hline
+    9 & Manhattan & 9 & 0.462 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 9 & 0.369 \bigstrut\\
+    \hline
+    16 & Manhattan & 9 & 0.442 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 9 & 0.344 \bigstrut\\
+    \hline
+    5 & Manhattan & 10 & 0.399 \bigstrut\\
+    \hline
+    5 & Euklidesowa & 10 & 0.313 \bigstrut\\
+    \hline
+    9 & Manhattan & 10 & 0.412 \bigstrut\\
+    \hline
+    9 & Euklidesowa & 10 & 0.304 \bigstrut\\
+    \hline
+    16 & Manhattan & 10 & 0.421 \bigstrut\\
+    \hline
+    16 & Euklidesowa & 10 & 0.290 \bigstrut\\
+    \hline
+    \end{tabular}%
+    \end{minipage}
+  \label{tab:addlabel}%
+\end{table}%
+Wyniki dla klasyfikatorów wykorzystujących taką samą liczbę sąsiadów i różne metryki zostały ze sobą przedstawione na poniższych wykresach.
+
+\begin{tikzpicture}[scale=1.3]
+\begin{axis}[
+title={Zależność dokładności od liczby cech dla klasyfikatorów wykorzystujących 5 sąsiadów},
+title style={text width=22em},
+xlabel={Liczba cech},
+ylabel={Dokładność},
+xtick distance=1,
+xmin=0,xmax=10,
+ymin=0,ymax=1,
+legend pos=north west,
+ymajorgrids=true,grid style=dashed
+]
+
+\addplot[color=red,mark=*]
+coordinates {
+(	1,	0.157	)
+(	2,	0.266	)
+(	3,	0.300	)
+(	4,	0.356	)
+(	5,	0.363	)
+(	6,	0.403	)
+(	7,	0.436	)
+(	8,	0.454	)
+(	9,	0.459	)
+(	10,	0.399	)
+};
+
+\addplot[color=blue,mark=square]
+coordinates {
+(	1	,	0.157	)
+(	2	,	0.266	)
+(	3	,	0.298	)
+(	4	,	0.335	)
+(	5	,	0.338	)
+(	6	,	0.374	)
+(	7	,	0.389	)
+(	8	,	0.395	)
+(	9	,	0.377	)
+(	10	,	0.313	)
+};
+
+\legend{Metryka Manhattan, Metryka euklidesowa}
+\end{axis}
+\end{tikzpicture}
+
+\begin{tikzpicture}[scale=1.3]
+\begin{axis}[
+title={Zależność dokładności od liczby cech dla klasyfikatorów wykorzystujących 9 sąsiadów},
+title style={text width=22em},
+xlabel={Liczba cech},
+ylabel={Dokładność},
+xtick distance=1,
+xmin=0,xmax=10,
+ymin=0,ymax=1,
+legend pos=north west,
+ymajorgrids=true,grid style=dashed
+]
+
+\addplot[color=red,mark=*]
+coordinates {
+(	1	,	0.159	)
+(	2	,	0.279	)
+(	3	,	0.322	)
+(	4	,	0.363	)
+(	5	,	0.378	)
+(	6	,	0.419	)
+(	7	,	0.436	)
+(	8	,	0.471	)
+(	9	,	0.462	)
+(	10	,	0.412	)
+};
+
+\addplot[color=blue,mark=square]
+coordinates {
+(	1	,	0.159	)
+(	2	,	0.277	)
+(	3	,	0.307	)
+(	4	,	0.337	)
+(	5	,	0.336	)
+(	6	,	0.357	)
+(	7	,	0.377	)
+(	8	,	0.391	)
+(	9	,	0.369	)
+(	10	,	0.304	)
+};
+
+\legend{Metryka Manhattan, Metryka euklidesowa}
+\end{axis}
+\end{tikzpicture}
+
+\begin{tikzpicture}[scale=1.3]
+\begin{axis}[
+title={Zależność dokładności od liczby cech dla klasyfikatorów wykorzystujących 16 sąsiadów},
+title style={text width=22em},
+xlabel={Liczba cech},
+ylabel={Dokładność},
+xtick distance=1,
+xmin=0,xmax=10,
+ymin=0,ymax=1,
+legend pos=north west,
+ymajorgrids=true,grid style=dashed
+]
+
+\addplot[color=red,mark=*]
+coordinates {
+(	1	,	0.177	)
+(	2	,	0.270	)
+(	3	,	0.341	)
+(	4	,	0.347	)
+(	5	,	0.371	)
+(	6	,	0.423	)
+(	7	,	0.434	)
+(	8	,	0.458	)
+(	9	,	0.442	)
+(	10	,	0.421	)
+};
+
+\addplot[color=blue,mark=square]
+coordinates {
+(	1	,	0.177	)
+(	2	,	0.269	)
+(	3	,	0.307	)
+(	4	,	0.303	)
+(	5	,	0.300	)
+(	6	,	0.330	)
+(	7	,	0.337	)
+(	8	,	0.343	)
+(	9	,	0.344	)
+(	10	,	0.290	)
+};
+
+\legend{Metryka Manhattan, Metryka euklidesowa}
+\end{axis}
+
+\end{tikzpicture}
+% Z przedstawionych wyników można wywnioskować, że dla tego zadania lepiej sprawdzała się metryka Manhattan. Metryka euklidesowa w najlepszych przypadkach klasyfikowała tak samo dobrze, a w pozostałych klasyfikowała gorzej od metryki Manhattan. W żadnym przypadku nie udało się uzyskać skuteczności klasyfikacji na poziomie co najmniej 0.5. W poszczególnych przypadkach się to zdarzało, ale po uśrednieniu wartości te były już niższe. Wyciągając wnioski z wyników wydaje się, że algorytm k najbliższych sąsiadów nie jest odpowiedni dla tak dużej liczby cech oraz klas.
+
+Na podstawie powyższych wyników dla każdego z klasyfikatorów została wybrana liczba cech, dla których spisał się on najlepiej. Przedstawia się to następująco:
+\begin{itemize}
+    \item 5 sąsiadów, metryka Manhattan - 9 cech (średnia dokładność: 0.459)
+    \item 5 sąsiadów, metryka Euklidesa - 8 cech (średnia dokładność: 0.395)
+    \item 9 sąsiadów, metryka Manhattan - 8 cech (średnia dokładność: 0.471)
+    \item 9 sąsiadów, metryka Euklidesa - 8 cech (średnia dokładność: 0.361)
+    \item 16 sąsiadów, metryka Manhattan - 8 cech (średnia dokładność: 0.458)
+    \item 16 sąsiadów, metryka Euklidesa - 9 cech (średnia dokładność: 0.344)
+\end{itemize}
+% [8 7 7 7 7 8]
+\subsection{Test t-studenta}
+
+Test t-studenta \cite{tstud} porównuje ze sobą dwie średnie i określa czy są one od siebie różne oraz jak duża jest ta różnica. Pozwala określić czy takie różnice mogły wystąpić przez przypadek. Często wykorzystuje się go, aby porównać rozwiązanie z określoną grupą kontrolną. Im większa jest wartość t, tym większa jest różnica między grupami. Im mniejsza wartość t, tym bardziej grupy są do siebie podobne.
+
+Każdej wartości t jest przyporządkowana wartość p. Wartość p, to prawdopodobieństwo tego, że różnica między grupami wystąpiła przez przypadek. Im mniejsza wartość p, tym bardziej prawdopodobne, że zależność między grupami nie jest przypadkowa. Zazwyczaj przyjmuje się poziom istotności na poziomie 0.05 (5\%). Wyniki otrzymanych z parowego testu t-studenta wartości p zostały przedstawione w poniższej tabeli:
+% Table generated by Excel2LaTeX from sheet 'Arkusz1'
+
+\begin{table}[htbp]
+  \centering
+  \caption{Wyniki testu parowego t-studenta}
+    \begin{tabular}{|l|r|r|r|r|r|r|}
+    \hline
+      & \multicolumn{1}{l|}{\textbf{5/Man}} & \multicolumn{1}{l|}{\textbf{5/Euk}} & \multicolumn{1}{l|}{\textbf{9/Man}} & \multicolumn{1}{l|}{\textbf{9/Euk}} & \multicolumn{1}{l|}{\textbf{16/Man}} & \multicolumn{1}{l|}{\textbf{16/Euk}} \bigstrut\\
+    \hline
+    \textbf{5/Man} & 1.00 & 0.00 & 0.36 & 0.00 & 0.95 & 0.00 \bigstrut\\
+    \hline
+    \textbf{5/Euk} & 0.00 & 1.00 & 0.00 & 0.78 & 0.00 & 0.00 \bigstrut\\
+    \hline
+    \textbf{9/Man} & 0.36 & 0.00 & 1.00 & 0.00 & 0.45 & 0.00 \bigstrut\\
+    \hline
+    \textbf{9/Euk} & 0.00 & 0.78 & 0.00 & 1.00 & 0.00 & 0.01 \bigstrut\\
+    \hline
+    \textbf{16/Man} & 0.95 & 0.00 & 0.45 & 0.00 & 1.00 & 0.00 \bigstrut\\
+    \hline
+    \textbf{16/Euk} & 0.00 & 0.00 & 0.00 & 0.01 & 0.00 & 1.00 \bigstrut\\
+    \hline
+    \end{tabular}%
+  \label{tab:addlabel}%
+\end{table}%
+
+
+
+Wyniki testu poniżej przyjętego poziomu istotności uzyskały pary klasyfikatorów mające wynik '1' w poniższej tabeli. Uzyskanie takiego wyniku oznacza to, że różnice w próbkach można uznać za nieprzypadkowe:
+\begin{table}[htbp]
+  \centering
+  \caption{Wyniki testu w odniesieniu do poziomu istotności}
+    \begin{tabular}{|l|r|r|r|r|r|r|}
+    \hline
+      & \multicolumn{1}{l|}{\textbf{5/Man}} & \multicolumn{1}{l|}{\textbf{5/Euk}} & \multicolumn{1}{l|}{\textbf{9/Man}} & \multicolumn{1}{l|}{\textbf{9/Euk}} & \multicolumn{1}{l|}{\textbf{16/Man}} & \multicolumn{1}{l|}{\textbf{16/Euk}} \bigstrut\\
+    \hline
+    \textbf{5/Man} & 0 & 1 & 0 & 1 & 0 & 1 \bigstrut\\
+    \hline
+    \textbf{5/Euk} & 1 & 0 & 1 & 0 & 1 & 1 \bigstrut\\
+    \hline
+    \textbf{9/Man} & 0 & 1 & 0 & 1 & 0 & 1 \bigstrut\\
+    \hline
+    \textbf{9/Euk} & 1 & 0 & 1 & 0 & 1 & 1 \bigstrut\\
+    \hline
+    \textbf{16/Man} & 0 & 1 & 0 & 1 & 0 & 1 \bigstrut\\
+    \hline
+    \textbf{16/Euk} & 1 & 1 & 1 & 1 & 1 & 0 \bigstrut\\
+    \hline
+    \end{tabular}%
+  \label{tab:addlabel}%
+\end{table}%
+
+\section{Dyskusja otrzymanych wyników}
+Z uzyskanych wyników można wywnioskować, że w przypadku stworzonego przez nas klasyfikatora większe znaczenie od liczby branych pod uwagę sąsiadów ma przyjęta metryka. W przypadku każdego z klasyfikatorów różnice w rozkładzie wartości były uznawane za istotne w każdym przypadku porównania z klasyfikatorem korzystającym z innej metryki. Poza tym klasyfikator wykorzystujący 16 sąsiadów oraz metrykę euklidesową wykazał istotne różnice z pozostałymi klasyfikatorami wykorzystującymi metrykę euklidesową. Klasyfikatory korzystujące z metryki Manhattan nie wykazały różnic poniżej przyjętego poziomu istotności. Może to świadczyć o tym, że pozostałe przyjęte wartości liczby sąsiadów w zbyt małym stopniu się od siebie różniły. 
+
+Dla każdej wartości liczby sąsiadów lepszą dokładność dał klasyfikator wykorzystujący metrykę Manhattan. Najlepsze średnie wyniki dał klasyfikator o parametrach 9 sąsiadów i metryce Manhattan. Osiągnął on średnią wartość dokładności na poziomie 0.471, a najwyższy nieuśredniony wynik dokładności na poziomie 0.541. Najwyższa średnia wartość dokładności uzyskana przez klasyfikator wykorzystujący metrykę Euklidesową wyniosła 0.395 i uzyskał ją klasyfikator z 5 sąsiadami. Widać zatem, że dla różnych metryk najlepsze wyniki uzyskały klasyfikatory o różnej liczbie sąsiadów. 
+
+Uzyskane wyniki dokładności na poziomie poniżej 0.5 pozwalają nam sądzić, że stworzone przez nas klasyfikatory nie mogłyby zostać zastosowane do prawdziwych zastosowań. Przeprowadzone przez nas poza eksperymentem próby manipulowania liczbą sąsiadów nie przyniosły istotnej poprawy dokładności. Możemy zatem domniemywać, że algorytm knn nie radzi sobie z klasyfikacją przy takiej liczbie klas i atrybutów. Udało nam się znaleźć informację w artykule naukowym \cite{knnimprove}, że skuteczność algorytmu knn jest relatywnie niska w porównaniu do innych algorytmów klasyfikujących.
+
+\newpage
+%
+% ---- Bibliography ----
+%
+% BibTeX users should specify bibliography style 'splncs04'.
+% References will then be sorted and formatted in the correct style.
+%
+\bibliographystyle{splncs04}
+\bibliography{bibliografia}
+%  \bibliography{mybibliography}
+%
+% \begin{thebibliography}{8}
+
+% \begin{enumerate}
+   
+% \end{enumerate}
+
+% \end{thebibliography}
+\end{document}

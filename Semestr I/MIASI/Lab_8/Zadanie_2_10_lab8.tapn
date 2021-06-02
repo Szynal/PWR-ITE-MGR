@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<pnml xmlns="http://www.informatik.hu-berlin.de/top/pnml/ptNetb">
+  <net active="true" id="TAPN1" type="P/T net">
+    <place displayName="true" id="P0" initialMarking="1" invariant="&lt; inf" name="P0" nameOffsetX="0" nameOffsetY="0" positionX="406" positionY="292"/>
+    <transition angle="0" displayName="true" id="T0" infiniteServer="false" name="T0" nameOffsetX="0" nameOffsetY="0" player="0" positionX="160" positionY="235" priority="0" urgent="false"/>
+    <arc id="A5" inscription="[0,inf)" nameOffsetX="590" nameOffsetY="-5" source="P0" target="T0" type="timed" weight="1">
+      <arcpath arcPointType="false" id="0" xCoord="406" yCoord="306"/>
+      <arcpath arcPointType="false" id="1" xCoord="345" yCoord="304"/>
+      <arcpath arcPointType="false" id="2" xCoord="178" yCoord="306"/>
+      <arcpath arcPointType="false" id="3" xCoord="175" yCoord="265"/>
+    </arc>
+    <arc id="A1" inscription="1" nameOffsetX="0" nameOffsetY="0" source="T0" target="P0" type="normal" weight="1">
+      <arcpath arcPointType="false" id="0" xCoord="179" yCoord="250"/>
+      <arcpath arcPointType="false" id="1" xCoord="416" yCoord="254"/>
+      <arcpath arcPointType="false" id="2" xCoord="419" yCoord="292"/>
+    </arc>
+  </net>
+  <k-bound bound="3"/>
+  <feature isGame="true" isTimed="true"/>
+</pnml>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+int[0,9] number;
+chan done;</declaration>
+	<template>
+		<name x="5" y="5">Zamek</name>
+		<declaration>// Place local declarations here.</declaration>
+		<location id="id0" x="-408" y="-68">
+			<name x="-418" y="-102">Is1</name>
+		</location>
+		<location id="id1" x="-110" y="-68">
+			<name x="-120" y="-102">Is3</name>
+		</location>
+		<location id="id2" x="-255" y="-68">
+			<name x="-265" y="-102">Is2</name>
+		</location>
+		<location id="id3" x="34" y="-68">
+			<name x="25" y="-102">Is4</name>
+		</location>
+		<location id="id4" x="170" y="-68">
+			<name x="160" y="-102">Open</name>
+		</location>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-204" y="-42">number == 1</label>
+			<label kind="synchronisation" x="-203" y="-59">done?</label>
+			<nail x="0" y="-42"/>
+			<nail x="-221" y="-42"/>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id4"/>
+			<label kind="guard" x="59" y="-102">number == 4</label>
+			<label kind="synchronisation" x="59" y="-85">done?</label>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-102" y="-42">number == 1</label>
+			<label kind="synchronisation" x="-93" y="-59">done?</label>
+			<nail x="-144" y="-42"/>
+			<nail x="-221" y="-42"/>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-391" y="68">number != 1 &amp;&amp; number != 4</label>
+			<label kind="synchronisation" x="-195" y="68">done?</label>
+			<nail x="-51" y="68"/>
+			<nail x="-399" y="68"/>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-408" y="-136">number != 1</label>
+			<label kind="synchronisation" x="-416" y="-161">done?</label>
+			<nail x="-442" y="-111"/>
+			<nail x="-391" y="-111"/>
+			<nail x="-382" y="-111"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-391" y="25">number != 1 &amp;&amp; number != 3</label>
+			<label kind="synchronisation" x="-195" y="25">done?</label>
+			<nail x="-127" y="42"/>
+			<nail x="-501" y="42"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-399" y="-8">number != 1 &amp;&amp; number != 2</label>
+			<label kind="synchronisation" x="-382" y="-25">done?</label>
+			<nail x="-255" y="-8"/>
+			<nail x="-425" y="-8"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-297" y="-144">number == 1</label>
+			<label kind="synchronisation" x="-289" y="-127">done?</label>
+			<nail x="-289" y="-110"/>
+			<nail x="-229" y="-110"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-76" y="-102">number == 3</label>
+			<label kind="synchronisation" x="-76" y="-85">done?</label>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-221" y="-102">number == 2</label>
+			<label kind="synchronisation" x="-221" y="-85">done?</label>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-374" y="-110">number == 1</label>
+			<label kind="synchronisation" x="-374" y="-85">done?</label>
+		</transition>
+	</template>
+	<template>
+		<name>Losowanie</name>
+		<location id="id5" x="-272" y="-204">
+			<name x="-365" y="-221">Random</name>
+		</location>
+		<location id="id6" x="-178" y="-204">
+			<name x="-153" y="-221">Ready</name>
+		</location>
+		<init ref="id5"/>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="-204" y="-161">done!</label>
+			<nail x="-221" y="-136"/>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id6"/>
+			<label kind="select" x="-255" y="-246">x : int[0,9]</label>
+			<label kind="assignment" x="-255" y="-229">number = x</label>
+			<nail x="-238" y="-204"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+P1 = Zamek();
+P2 = Losowanie();
+// List one or more processes to be composed into a system.
+system P1, P2;
+    </system>
+	<queries>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+	</queries>
+</nta>
